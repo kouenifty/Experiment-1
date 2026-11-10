@@ -81,7 +81,8 @@ interface DataState {
   loading: boolean
   error: string | null
   refresh(): Promise<void>
-  money(n: number, opts?: { sign?: boolean }): string
+  currency: string
+  money(n: number, opts?: { sign?: boolean; whole?: boolean }): string
 }
 
 const DataCtx = createContext<DataState | null>(null)
@@ -92,7 +93,7 @@ export function useData() {
   return v
 }
 
-const EMPTY_SUMMARY: Summary = { balance: 0, monthExpense: 0, monthIncome: 0 }
+const EMPTY_SUMMARY: Summary = { balance: 0, monthExpense: 0, monthIncome: 0, monthSpend: 0, todaySpend: 0 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { store } = useSession()
@@ -110,7 +111,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const [p, s, r, g, c] = await Promise.all([
         store.getProfile(),
         store.summary(),
-        store.listTransactions({ limit: 30 }),
+        store.listTransactions({ limit: 40 }),
         store.listGoals(),
         store.listContacts(),
       ])
@@ -131,12 +132,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     void refresh()
   }, [refresh])
 
-  const currency = profile?.currency ?? 'USD'
-  const money = useCallback((n: number, opts?: { sign?: boolean }) => fmtMoney(n, currency, opts), [currency])
+  // Pick up changes from other devices when the app comes back into view.
+  useEffect(() => {
+    const onVis = () => document.visibilityState === 'visible' && void refresh()
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [refresh])
+
+  const currency = profile?.currency ?? 'MYR'
+  const money = useCallback((n: number, opts?: { sign?: boolean; whole?: boolean }) => fmtMoney(n, currency, opts), [currency])
 
   const value = useMemo(
-    () => ({ profile, summary, recent, goals, contacts, loading, error, refresh, money }),
-    [profile, summary, recent, goals, contacts, loading, error, refresh, money],
+    () => ({ profile, summary, recent, goals, contacts, loading, error, refresh, currency, money }),
+    [profile, summary, recent, goals, contacts, loading, error, refresh, currency, money],
   )
   return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>
 }

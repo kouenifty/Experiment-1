@@ -22,7 +22,7 @@ export function Login() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name.trim() }, emailRedirectTo: window.location.origin },
+          options: { data: { full_name: name.trim() }, emailRedirectTo: window.location.origin + window.location.pathname },
         })
         if (error) throw error
         if (!data.session) setMsg({ ok: true, text: 'Check your inbox to confirm your email, then sign in.' })
@@ -42,25 +42,26 @@ export function Login() {
         <span className="blob b3" />
       </div>
       <h1>
-        Money,
+        Know what you
         <br />
-        made calm.
+        can spend today.
       </h1>
-      <p className="muted">Track spending, send money and grow your savings — all in one pocket.</p>
+      <p className="muted">Duit turns your monthly budget into a daily number, so you always know where you stand.</p>
       <form className="form" onSubmit={submit}>
         {mode === 'up' && (
           <label className="field">
             <span>Full name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
+            <input id="login-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
           </label>
         )}
         <label className="field">
           <span>Email</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+          <input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
         </label>
         <label className="field">
           <span>Password</span>
           <input
+            id="login-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

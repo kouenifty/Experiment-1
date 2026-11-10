@@ -19,7 +19,8 @@ export interface Profile {
   id: string
   full_name: string
   currency: string
-  card_last4: string
+  /** Spending budget per calendar month; null = not set. */
+  monthly_budget: number | null
 }
 
 export interface Transaction {
@@ -48,13 +49,19 @@ export interface Goal {
   saved: number
   icon: GoalIcon
   tint: Tint
+  /** Optional target date, YYYY-MM-DD. */
+  deadline: string | null
 }
 export type NewGoal = Omit<Goal, 'id'>
 
 export interface Summary {
   balance: number
-  monthExpense: number
   monthIncome: number
+  monthExpense: number
+  /** Month spending that counts against the budget (excludes money moved to savings goals). */
+  monthSpend: number
+  /** Same, for today only. */
+  todaySpend: number
 }
 
 export interface TxQuery {
@@ -70,6 +77,7 @@ export interface Store {
   summary(): Promise<Summary>
   listTransactions(q?: TxQuery): Promise<Transaction[]>
   addTransaction(t: NewTransaction): Promise<Transaction>
+  updateTransaction(id: string, patch: Partial<NewTransaction>): Promise<Transaction>
   deleteTransaction(id: string): Promise<void>
   listContacts(): Promise<Contact[]>
   addContact(c: NewContact): Promise<Contact>

@@ -1,21 +1,37 @@
 import { NavLink } from 'react-router-dom'
-import { IconChart, IconChat, IconGear, IconHome } from './Icons'
+import { useUI } from '../ui'
+import { IconChart, IconHome, IconPlus, IconTarget, IconUser } from './Icons'
 
-const TABS = [
-  { to: '/', label: 'Home', Icon: IconHome, fill: true },
-  { to: '/analytics', label: 'Analytics', Icon: IconChart },
-  { to: '/support', label: 'Support', Icon: IconChat, fill: true },
-  { to: '/settings', label: 'Settings', Icon: IconGear },
+const LEFT = [
+  { to: '/', label: 'Home', Icon: IconHome },
+  { to: '/insights', label: 'Insights', Icon: IconChart },
+]
+const RIGHT = [
+  { to: '/goals', label: 'Goals', Icon: IconTarget },
+  { to: '/me', label: 'Me', Icon: IconUser },
 ]
 
+function Tab({ to, label, Icon }: (typeof LEFT)[number]) {
+  return (
+    <NavLink to={to} end className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}>
+      <Icon size={23} />
+      <span>{label}</span>
+    </NavLink>
+  )
+}
+
 export function TabBar() {
+  const { openEntry } = useUI()
   return (
     <nav className="tabbar" aria-label="Main">
-      {TABS.map(({ to, label, Icon, fill }) => (
-        <NavLink key={to} to={to} end className={({ isActive }) => `tab ${isActive ? 'active' : ''} ${fill ? 'fillable' : ''}`}>
-          <Icon size={24} />
-          <span>{label}</span>
-        </NavLink>
+      {LEFT.map((t) => (
+        <Tab key={t.to} {...t} />
+      ))}
+      <button className="fab" onClick={() => openEntry()} aria-label="Add a transaction">
+        <IconPlus size={26} strokeWidth={2.2} />
+      </button>
+      {RIGHT.map((t) => (
+        <Tab key={t.to} {...t} />
       ))}
     </nav>
   )

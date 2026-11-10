@@ -1,101 +1,97 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
-import { BalanceCards } from '../components/BalanceCards'
-import { IconArrowUpRight, IconDown, IconGrid, IconPlus, IconRefresh } from '../components/Icons'
-import { Sheet } from '../components/Sheet'
-import { TxDetailSheet } from '../components/TxDetailSheet'
-import { TxRow } from '../components/TxRow'
-import { TxSheet } from '../components/TxSheet'
-import type { Transaction, TxKind } from '../lib/types'
+import { BudgetCard } from '../components/BudgetCard'
+import { IconArrowDownLeft, IconArrowUpRight, IconEye, IconEyeOff, IconTarget } from '../components/Icons'
+import { TxGroups } from '../components/TxRow'
+import { greeting } from '../lib/format'
 import { useData } from '../state'
+import { useUI } from '../ui'
 
 export function Home() {
-  const { profile, recent, refresh, loading, error } = useData()
+  const { profile, recent, summary, money, loading, error, refresh } = useData()
+  const { privateMode, togglePrivate, openEntry } = useUI()
   const nav = useNavigate()
-  const [txKind, setTxKind] = useState<TxKind | null>(null)
-  const [menu, setMenu] = useState(false)
-  const [detail, setDetail] = useState<Transaction | null>(null)
-  const name = profile?.full_name || 'there'
+  const first = profile?.full_name.split(' ')[0] || 'there'
 
   return (
     <main className="page">
       <header className="home-head">
-        <Avatar name={name} tint="mint" size={44} />
+        <Avatar name={profile?.full_name || '?'} tint="mint" size={44} />
         <p className="welcome">
-          Welcome,
-          <br />
-          <strong>{name}</strong>
+          <span>{greeting()},</span>
+          <strong>{first}</strong>
         </p>
-        <button className={`icon-btn ${loading ? 'spin' : ''}`} onClick={() => refresh()} aria-label="Refresh">
-          <IconRefresh />
+        <button className="icon-btn" onClick={togglePrivate} aria-pressed={privateMode} aria-label={privateMode ? 'Show amounts' : 'Hide amounts'}>
+          {privateMode ? <IconEyeOff /> : <IconEye />}
         </button>
       </header>
 
-      {error && <p className="banner-error">{error}</p>}
+      {error && (
+        <div className="banner-error">
+          <span>Couldn’t load your data: {error}</span>
+          <button onClick={() => refresh()}>Retry</button>
+        </div>
+      )}
 
-      <BalanceCards />
+      <BudgetCard />
 
-      <div className="actions">
-        <button className="action" onClick={() => setTxKind('income')} aria-label="Add income">
-          <IconDown />
+      <div className="stat-row">
+        <div className="stat tint-mint">
+          <span>Balance</span>
+          <strong className={`num amt ${loading && !profile ? 'skeleton' : ''}`}>{money(summary.balance)}</strong>
+        </div>
+        <div className="stat tint-peach">
+          <span>In this month</span>
+          <strong className="num amt">{money(summary.monthIncome, { whole: true })}</strong>
+        </div>
+      </div>
+
+      <div className="quick">
+        <button onClick={() => nav('/transfer')}>
+          <span className="quick-ico tint-lilac">
+            <IconArrowUpRight size={20} />
+          </span>
+          Send
         </button>
-        <button className="action" onClick={() => nav('/transfer')} aria-label="Send money">
-          <IconArrowUpRight />
+        <button onClick={() => openEntry({ kind: 'income' })}>
+          <span className="quick-ico tint-mint">
+            <IconArrowDownLeft size={20} />
+          </span>
+          Income
         </button>
-        <button className="action" onClick={() => setTxKind('expense')} aria-label="Add expense">
-          <IconPlus />
-        </button>
-        <button className="action action-main" onClick={() => setMenu(true)} aria-label="More actions">
-          <IconGrid />
+        <button onClick={() => nav('/goals')}>
+          <span className="quick-ico tint-pink">
+            <IconTarget size={20} />
+          </span>
+          Save
         </button>
       </div>
 
       <section>
         <div className="section-head">
-          <h2>Transactions</h2>
+          <h2>Recent</h2>
           {recent.length > 0 && <Link to="/transactions">See all</Link>}
         </div>
-        <div className="tx-list">
-          {recent.slice(0, 8).map((t) => (
-            <TxRow key={t.id} tx={t} onClick={() => setDetail(t)} />
-          ))}
-          {!loading && recent.length === 0 && (
-            <div className="empty">
-              <p>No transactions yet.</p>
-              <button className="btn-primary small" onClick={() => setTxKind('expense')}>
-                Add your first one
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <TxSheet open={txKind !== null} initialKind={txKind ?? 'expense'} onClose={() => setTxKind(null)} />
-      <TxDetailSheet tx={detail} onClose={() => setDetail(null)} />
-      <Sheet open={menu} title="Quick actions" onClose={() => setMenu(false)}>
-        <div className="menu-grid">
-          {[
-            { label: 'Add expense', tint: 'peach', go: () => setTxKind('expense') },
-            { label: 'Add income', tint: 'mint', go: () => setTxKind('income') },
-            { label: 'Send money', tint: 'lilac', go: () => nav('/transfer') },
-            { label: 'Savings goals', tint: 'sky', go: () => nav('/analytics#goals') },
-            { label: 'All transactions', tint: 'pink', go: () => nav('/transactions') },
-            { label: 'Export CSV', tint: 'sun', go: () => nav('/settings#data') },
-          ].map((a) => (
-            <button
-              key={a.label}
-              className={`menu-tile tint-${a.tint}`}
-              onClick={() => {
-                setMenu(false)
-                a.go()
-              }}
-            >
-              {a.label}
+        {loading && recent.length === 0 ? (
+          <div className="tx-list">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="tx skeleton-row" />
+            ))}
+          </div>
+        ) : recent.length === 0 ? (
+          <div className="empty">
+            <span className="empty-emoji" aria-hidden="true">
+              🧾
+            </span>
+            <p>Nothing logged yet. Tap + to add your first expense; it takes about three seconds.</p>
+            <button className="btn-ink small" onClick={() => openEntry()}>
+              Add an expense
             </button>
-          ))}
-        </div>
-      </Sheet>
+          </div>
+        ) : (
+          <TxGroups list={recent.slice(0, 12)} />
+        )}
+      </section>
     </main>
   )
 }

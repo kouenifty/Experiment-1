@@ -1,43 +1,41 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { IconBack, IconSearch } from '../components/Icons'
-import { TxDetailSheet } from '../components/TxDetailSheet'
-import { TxRow } from '../components/TxRow'
-import { categoryOf } from '../lib/categories'
-import { dayLabel } from '../lib/format'
-import type { Transaction } from '../lib/types'
+import { TxGroups } from '../components/TxRow'
+import { CATEGORIES, categoryOf } from '../lib/categories'
+import type { CategoryId, Transaction } from '../lib/types'
 import { useData, useSession } from '../state'
 
 export function Transactions() {
   const nav = useNavigate()
+  const [params, setParams] = useSearchParams()
   const { store } = useSession()
-  const { recent } = useData()
+  const { recent, money } = useData()
   const [all, setAll] = useState<Transaction[] | null>(null)
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<'all' | 'expense' | 'income'>('all')
-  const [detail, setDetail] = useState<Transaction | null>(null)
+  const cat = params.get('cat') as CategoryId | null
 
-  // Reload whenever the shared data refreshes (adds / deletes elsewhere).
+  // Reload whenever shared data refreshes (adds, edits, deletes elsewhere).
   useEffect(() => {
     store.listTransactions().then(setAll).catch(() => setAll([]))
   }, [store, recent])
 
-  const groups = useMemo(() => {
+  const list = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    const list = (all ?? []).filter(
+    return (all ?? []).filter(
       (t) =>
         (filter === 'all' || t.kind === filter) &&
-        (!needle || t.title.toLowerCase().includes(needle) || categoryOf(t.category).label.toLowerCase().includes(needle)),
+        (!cat || t.category === cat) &&
+        (!needle ||
+          t.title.toLowerCase().includes(needle) ||
+          (t.note ?? '').toLowerCase().includes(needle) ||
+          categoryOf(t.category).label.toLowerCase().includes(needle) ||
+          String(t.amount).includes(needle)),
     )
-    const out: { day: string; items: Transaction[] }[] = []
-    for (const t of list) {
-      const d = dayLabel(new Date(t.occurred_at))
-      const last = out[out.length - 1]
-      if (last && last.day === d) last.items.push(t)
-      else out.push({ day: d, items: [t] })
-    }
-    return out
-  }, [all, q, filter])
+  }, [all, q, filter, cat])
+
+  const total = list.reduce((s, t) => s + (t.kind === 'income' ? t.amount : -t.amount), 0)
 
   return (
     <main className="page">
@@ -45,33 +43,33 @@ export function Transactions() {
         <button className="icon-btn" onClick={() => nav(-1)} aria-label="Back">
           <IconBack />
         </button>
-        <h1>All transactions</h1>
+        <h1>Activity</h1>
         <span className="icon-btn-spacer" />
       </header>
       <label className="search">
         <IconSearch size={18} />
-        <input placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input id="search" placeholder="Search name, note, amount" value={q} onChange={(e) => setQ(e.target.value)} />
       </label>
-      <div className="segmented">
+      <div className="filter-row">
         {(['all', 'expense', 'income'] as const).map((f) => (
-          <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>
-            {f === 'all' ? 'All' : f === 'expense' ? 'Expenses' : 'Income'}
+          <button key={f} className={`chip ${filter === f ? 'on' : ''}`} onClick={() => setFilter(f)}>
+            {f === 'all' ? 'All' : f === 'expense' ? 'Spent' : 'Received'}
           </button>
         ))}
+        {cat && CATEGORIES[cat] && (
+          <button className="chip on" onClick={() => setParams({})} aria-label={`Remove ${CATEGORIES[cat].label} filter`}>
+            {CATEGORIES[cat].emoji} {CATEGORIES[cat].label} ✕
+          </button>
+        )}
       </div>
+      {all && list.length > 0 && (
+        <p className="list-total">
+          {list.length} {list.length === 1 ? 'transaction' : 'transactions'} · net <b className="num amt">{money(total, { sign: true })}</b>
+        </p>
+      )}
       {all === null && <p className="muted center">Loading…</p>}
-      {all && groups.length === 0 && <p className="muted center">Nothing here.</p>}
-      {groups.map((g) => (
-        <section key={g.day} className="tx-group">
-          <h3>{g.day}</h3>
-          <div className="tx-list">
-            {g.items.map((t) => (
-              <TxRow key={t.id} tx={t} onClick={() => setDetail(t)} />
-            ))}
-          </div>
-        </section>
-      ))}
-      <TxDetailSheet tx={detail} onClose={() => setDetail(null)} />
+      {all && list.length === 0 && <p className="muted center pad">No transactions match. Try a different search or filter.</p>}
+      <TxGroups list={list} />
     </main>
   )
 }

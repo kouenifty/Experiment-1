@@ -1,4 +1,4 @@
--- Pocket expense tracker — Supabase schema
+-- Duit expense tracker — Supabase schema
 -- Run this in the Supabase dashboard → SQL Editor (or `supabase db push` as a migration).
 -- Every table is protected by Row Level Security: users only ever see their own rows.
 
@@ -7,10 +7,10 @@ create extension if not exists pgcrypto;
 -- ── Profiles ────────────────────────────────────────────────────────────────
 create table if not exists public.profiles (
   id          uuid primary key references auth.users (id) on delete cascade,
-  full_name   text not null default '',
-  currency    text not null default 'USD',
-  card_last4  text not null default '0000' check (card_last4 ~ '^[0-9]{4}$'),
-  created_at  timestamptz not null default now()
+  full_name       text not null default '',
+  currency        text not null default 'MYR',
+  monthly_budget  numeric(12, 2) check (monthly_budget is null or monthly_budget > 0),
+  created_at      timestamptz not null default now()
 );
 
 -- ── Transactions ────────────────────────────────────────────────────────────
@@ -48,8 +48,16 @@ create table if not exists public.savings_goals (
   saved       numeric(12, 2) not null default 0 check (saved >= 0),
   icon        text not null default 'petals',
   tint        text not null default 'lilac',
+  deadline    date,
   created_at  timestamptz not null default now()
 );
+
+-- ── Upgrades for databases created from an earlier version of this file ─────
+alter table public.profiles alter column currency set default 'MYR';
+alter table public.profiles add column if not exists monthly_budget numeric(12, 2)
+  check (monthly_budget is null or monthly_budget > 0);
+alter table public.profiles drop column if exists card_last4;
+alter table public.savings_goals add column if not exists deadline date;
 
 -- ── Balance view (respects RLS of the caller) ───────────────────────────────
 create or replace view public.account_balance

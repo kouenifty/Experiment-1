@@ -31,25 +31,10 @@ export const IconChart = (p: P) => (
     <path d="M4 20h16M6.5 20v-6h3v6M10.5 20V9h3v11M14.5 20V5h3v15" />
   </Svg>
 )
-export const IconChat = (p: P) => (
-  <Svg {...p}>
-    <path d="M12 4a8 8 0 0 0-6.9 12l-1.1 4 4.1-1.1A8 8 0 1 0 12 4z" />
-  </Svg>
-)
 export const IconGear = (p: P) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="3" />
     <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-  </Svg>
-)
-export const IconRefresh = (p: P) => (
-  <Svg {...p}>
-    <path d="M20 11a8 8 0 0 0-14.6-4.2M4 4v3.5h3.5M4 13a8 8 0 0 0 14.6 4.2M20 20v-3.5h-3.5" />
-  </Svg>
-)
-export const IconDown = (p: P) => (
-  <Svg {...p}>
-    <path d="M12 4v11M7 10.5l5 5 5-5M5 20h14" />
   </Svg>
 )
 export const IconArrowUpRight = (p: P) => (
@@ -60,11 +45,6 @@ export const IconArrowUpRight = (p: P) => (
 export const IconPlus = (p: P) => (
   <Svg {...p}>
     <path d="M12 5v14M5 12h14" />
-  </Svg>
-)
-export const IconGrid = (p: P) => (
-  <Svg {...p} stroke="none" fill="currentColor">
-    {[5, 12, 19].flatMap((y) => [5, 12, 19].map((x) => <circle key={`${x}${y}`} cx={x} cy={y} r={1.8} />))}
   </Svg>
 )
 export const IconBack = (p: P) => (
@@ -95,23 +75,6 @@ export const IconBackspace = (p: P) => (
     <path d="m11.5 9.5 5 5M16.5 9.5l-5 5" />
   </Svg>
 )
-export const IconCalendar = (p: P) => (
-  <Svg {...p}>
-    <rect x="4" y="5" width="16" height="15" rx="3" />
-    <path d="M4 10h16M9 3v4M15 3v4" />
-  </Svg>
-)
-export const IconBars = (p: P) => (
-  <Svg {...p}>
-    <path d="M5 19V11h3.5v8M10.25 19V6h3.5v13M15.5 19v-5H19v5" />
-  </Svg>
-)
-export const IconPie = (p: P) => (
-  <Svg {...p}>
-    <path d="M12 3v9h9" />
-    <circle cx="12" cy="12" r="9" />
-  </Svg>
-)
 export const IconClose = (p: P) => (
   <Svg {...p}>
     <path d="M6 6l12 12M18 6 6 18" />
@@ -122,12 +85,6 @@ export const IconTrash = (p: P) => (
     <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
   </Svg>
 )
-export const IconSearch = (p: P) => (
-  <Svg {...p}>
-    <circle cx="11" cy="11" r="6.5" />
-    <path d="m20 20-4.4-4.4" />
-  </Svg>
-)
 export const IconDownload = (p: P) => (
   <Svg {...p}>
     <path d="M12 4v11M7 10.5l5 5 5-5M5 20h14" />
@@ -136,5 +93,46 @@ export const IconDownload = (p: P) => (
 export const IconCheck = (p: P) => (
   <Svg {...p}>
     <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </Svg>
+)
+export const IconEye = (p: P) => (
+  <Svg {...p}>
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+)
+export const IconEyeOff = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 4l16 16M10.6 6.1A9.5 9.5 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-2.8 3.4M6.6 7.6C4 9.4 2.5 12 2.5 12S6 18 12 18a9 9 0 0 0 4.2-1M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </Svg>
+)
+export const IconUser = (p: P) => (
+  <Svg {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" />
+  </Svg>
+)
+export const IconTarget = (p: P) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <circle cx="12" cy="12" r="4.5" />
+    <circle cx="12" cy="12" r="0.8" fill="currentColor" />
+  </Svg>
+)
+export const IconArrowDownLeft = (p: P) => (
+  <Svg {...p}>
+    <path d="M17 7 7 17M15.5 17H7V8.5" />
+  </Svg>
+)
+export const IconCopy = (p: P) => (
+  <Svg {...p}>
+    <rect x="8" y="8" width="12" height="12" rx="3" />
+    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+  </Svg>
+)
+export const IconSearch = (p: P) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m20 20-4.4-4.4" />
   </Svg>
 )

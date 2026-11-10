@@ -1,62 +1,67 @@
-# Pocket: an expense tracker PWA
+# Duit
 
-A mobile-first expense tracker you can install as a Progressive Web App, with Supabase for auth and data.
-The visual direction comes from the *Expense Tracker – Fintech MVP* Dribbble shot: a pastel palette
-(`#FFC4BB`, `#C0AFFF`, `#A3F3DD`, black, white), big rounded cards and colour-coded transactions.
-The typography is new: **Plus Jakarta Sans** for UI text and **Space Grotesk** for figures and headlines.
+A mobile-first expense tracker in ringgit (RM), installable as a PWA, backed by Supabase.
 
-## Features
+The look started from the *Expense Tracker – Fintech MVP* Dribbble shot (pastel `#FFC4BB` / `#C0AFFF` / `#A3F3DD`,
+big rounded shapes) and was redesigned around one question: **how much can I spend today?**
 
-- **Home**: welcome header, swipeable cards (balance / spent this month / earned this month), quick actions, colour-coded transactions
-- **Transfer**: contact carousel, a big amount display, an on-screen keypad (your physical keyboard works too), and "Send money" with a balance check
-- **Analytics**: weekly Expenses/Income bar chart with a tooltip, a category donut view, and week navigation
-- **Savings goals**: create goals, add money (recorded as a *Savings* expense so your balance stays accurate), and track progress
-- **All transactions**: search, filter, transactions grouped by day, and delete
-- **Settings**: name, currency, card last 4, CSV export, install prompt, sign out
-- **PWA**: installable and loads offline (Workbox service worker, self-hosted fonts)
-- **Demo mode**: with no Supabase keys, the app runs on sample data stored in the browser
+## What's in it
 
-## Getting started
+- **Safe to spend today.** Set a monthly budget and Duit spreads what's left evenly over the remaining days.
+  A pace marker on the month bar shows whether you're spending faster than planned.
+- **Three-tap entry.** The centre **+** opens a keypad. Type the amount, tap a category, save. Duit remembers
+  your last category, the name defaults to the category, and Today/Yesterday are one tap each.
+- **Undo, not "are you sure?".** Adding, deleting, sending and saving to goals all show a toast with Undo.
+- **Insights.** Week or month view, a comparison against the same point last period, daily average,
+  and a ranked category breakdown. Tap a category to see its transactions.
+- **Savings goals.** Optional target date with the monthly amount needed, quick-add chips, and take money out again.
+- **Send money.** Pick a contact, key in the amount, add an optional note. Duit records it (no real money moves).
+- **Privacy mode.** The eye icon blurs every amount, for checking your budget in public.
+- **Light, dark and auto themes.** Malay greetings by time of day, en-MY formatting, MYR by default.
+- **PWA.** Installable, opens offline, self-hosted fonts (Plus Jakarta Sans + Space Grotesk).
 
-```bash
-npm install
-npm run dev
-```
+## Hosting (no local setup needed)
 
-With no environment variables set, the app opens in **demo mode**.
+The repo deploys itself to **GitHub Pages** through `.github/workflows/deploy.yml`:
+
+1. In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. Re-run the latest "Deploy to GitHub Pages" workflow (Actions tab), or push any commit.
+3. The site appears at `https://<your-user>.github.io/<repo>/`. Open it on your phone and use "Add to Home Screen".
+
+GitHub Pages on a **private** repo needs a paid GitHub plan. Otherwise make the repo public, or import it into
+Vercel or Netlify (build command `npm run build`, output folder `dist`).
+
+Without Supabase settings the site runs in **demo mode** with sample data stored in the browser.
 
 ## Connecting Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open **SQL Editor**, paste [`supabase/schema.sql`](supabase/schema.sql) and run it. This creates the
-   `profiles`, `transactions`, `contacts` and `savings_goals` tables, plus the `account_balance` view,
-   row-level security policies and a trigger that creates a profile on sign-up.
-3. Copy `.env.example` to `.env.local` and fill in the values from **Project Settings → API**:
-   ```
-   VITE_SUPABASE_URL=https://xxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJ...
-   ```
-4. Under **Authentication → URL Configuration**, add your site URL (e.g. `http://localhost:5173` and your production domain).
-5. Restart `npm run dev`. You'll get a sign-in / sign-up screen.
+2. **SQL Editor** → paste [`supabase/schema.sql`](supabase/schema.sql) → Run. It creates the tables,
+   the balance view, row-level security, and a trigger that creates a profile on sign-up. It's safe to re-run,
+   and it upgrades databases created from the earlier version.
+3. **Authentication → URL Configuration**: set the Site URL to your Pages URL.
+4. In GitHub: **Settings → Secrets and variables → Actions → Variables**, add
+   `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (from Supabase → Project Settings → API).
+   The anon key is designed to be public; row-level security protects the data.
+5. Re-run the deploy workflow. The site now shows a sign-in screen.
 
-## Scripts
+## Scripts (only if you do want to run it locally)
 
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Dev server |
-| `npm run build` | Type-check and production build (includes the service worker) |
-| `npm run preview` | Serve the production build locally (use this to test install/offline) |
+| `npm run build` | Type-check and build the PWA into `dist/` |
+| `npm run build:demo` | Single-file demo build (`dist-artifact/duit.html`) for embedding |
 
 ## Project layout
 
 ```
 src/
-  lib/          types, formatting, Supabase client, Supabase + local stores
-  components/   cards, sheets, tab bar, icons
-  pages/        Home, Transfer, Analytics, Transactions, Support, Settings, Login
-  state.tsx     session (Supabase or demo) and shared app data
+  lib/          types, money/date formatting, budget maths, Supabase + local stores
+  components/   entry sheet, keypad, budget hero, transaction rows, goal sheets, tab bar
+  pages/        Home, Insights, Goals, Me, Transfer, Transactions, Login
+  state.tsx     session (Supabase or demo) and shared data
+  ui.tsx        toasts with undo, privacy mode, theme, entry-sheet control
 supabase/schema.sql
+.github/workflows/deploy.yml
 ```
-
-To change the fonts, edit `--font-ui` and `--font-num` at the top of `src/styles.css` and the two
-`@fontsource-variable/*` imports in `src/main.tsx`.

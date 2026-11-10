@@ -1,8 +1,9 @@
-import { addDays, startOfMonth, uid } from './format'
-import type { Contact, Goal, Profile, Store, Transaction } from './types'
+import { summarize } from './budget'
+import { addDays, round2, uid } from './format'
+import type { CategoryId, Contact, Goal, Profile, Store, Transaction } from './types'
 
-/** Browser-only store used when Supabase isn't configured. */
-const KEY = 'pocket.demo.v1'
+/** Browser-only store used when Supabase isn't configured (demo mode). */
+const KEY = 'duit.demo.v2'
 
 interface DB {
   profile: Profile
@@ -11,54 +12,86 @@ interface DB {
   goals: Goal[]
 }
 
-function at(daysAgo: number, h: number, m: number) {
-  const d = addDays(new Date(), -daysAgo)
-  d.setHours(h, m, 0, 0)
-  return d.toISOString()
+/** Small deterministic PRNG so the demo looks the same on every reset. */
+function rng(seed: number) {
+  return () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296
+    return seed / 4294967296
+  }
 }
 
-const minsAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString()
+type Tpl = [title: string, category: CategoryId, min: number, max: number, perWeek: number, hourFrom: number, hourTo: number]
+const DAILY: Tpl[] = [
+  ['Grab', 'transport', 9, 26, 3, 7, 22],
+  ['Mamak Bistro', 'food', 8, 19, 4, 12, 23],
+  ['Tealive', 'food', 6.5, 9.9, 3, 10, 18],
+  ['99 Speedmart', 'food', 18, 72, 1.5, 9, 21],
+  ['Nasi lemak stall', 'food', 5, 9, 2, 7, 10],
+  ['Shopee', 'shopping', 22, 149, 1, 20, 23],
+  ['Touch ’n Go reload', 'transport', 50, 50, 0.7, 8, 19],
+  ['Petronas', 'transport', 40, 80, 0.8, 7, 20],
+  ['GSC Cinemas', 'fun', 28, 38, 0.4, 19, 22],
+  ['Guardian', 'health', 15, 62, 0.4, 11, 20],
+]
 
 function seed(): DB {
-  const tx: Omit<Transaction, 'id'>[] = [
-    { title: 'Uber', amount: 21, kind: 'expense', category: 'transport', note: null, occurred_at: minsAgo(18) },
-    { title: 'Apple', amount: 14, kind: 'income', category: 'refund', note: 'App Store refund', occurred_at: minsAgo(95) },
-    { title: 'Grocery', amount: 102.3, kind: 'expense', category: 'food', note: null, occurred_at: minsAgo(260) },
-    { title: 'Netflix', amount: 15.49, kind: 'expense', category: 'fun', note: null, occurred_at: at(1, 20, 5) },
-    { title: 'Electricity', amount: 86.2, kind: 'expense', category: 'bills', note: null, occurred_at: at(1, 11, 30) },
-    { title: 'Coffee Lab', amount: 6.8, kind: 'expense', category: 'food', note: null, occurred_at: at(2, 8, 12) },
-    { title: 'Zara', amount: 129.0, kind: 'expense', category: 'shopping', note: null, occurred_at: at(2, 17, 44) },
-    { title: 'Pharmacy', amount: 23.15, kind: 'expense', category: 'health', note: null, occurred_at: at(3, 13, 2) },
-    { title: 'Freelance', amount: 640, kind: 'income', category: 'salary', note: 'Logo project', occurred_at: at(3, 10, 0) },
-    { title: 'Metro card', amount: 40, kind: 'expense', category: 'transport', note: null, occurred_at: at(4, 7, 55) },
-    { title: 'Sushi Bar', amount: 58.4, kind: 'expense', category: 'food', note: null, occurred_at: at(5, 19, 30) },
-    { title: 'Cinema', amount: 24, kind: 'expense', category: 'fun', note: null, occurred_at: at(6, 21, 0) },
-    { title: 'Internet', amount: 49.99, kind: 'expense', category: 'bills', note: null, occurred_at: at(8, 9, 0) },
-  ]
+  const r = rng(20261110)
+  const now = new Date()
+  const tx: Omit<Transaction, 'id'>[] = []
+  const at = (d: Date, hFrom: number, hTo: number) => {
+    const t = new Date(d)
+    t.setHours(hFrom + Math.floor(r() * (hTo - hFrom)), Math.floor(r() * 60), 0, 0)
+    return t
+  }
+  for (let back = 45; back >= 0; back--) {
+    const day = addDays(now, -back)
+    for (const [title, category, min, max, perWeek, hFrom, hTo] of DAILY) {
+      if (r() > perWeek / 7) continue
+      const when = at(day, hFrom, hTo)
+      if (when > now) continue
+      tx.push({ title, category, kind: 'expense', amount: round2(min + r() * (max - min)), note: null, occurred_at: when.toISOString() })
+    }
+    // Monthly items
+    const dom = day.getDate()
+    const fixed = (h: number) => {
+      const d = new Date(day)
+      d.setHours(h, 0, 0, 0)
+      return d.toISOString()
+    }
+    if (dom === 3) tx.push({ title: 'TNB', category: 'bills', kind: 'expense', amount: 118.6, note: 'Electricity', occurred_at: fixed(10) })
+    if (dom === 5) tx.push({ title: 'Unifi', category: 'bills', kind: 'expense', amount: 129, note: 'Home fibre', occurred_at: fixed(9) })
+    if (dom === 7) tx.push({ title: 'Spotify', category: 'fun', kind: 'expense', amount: 16.9, note: null, occurred_at: fixed(8) })
+    if (dom === 25) tx.push({ title: 'Salary', category: 'salary', kind: 'income', amount: 5800, note: 'Monthly salary', occurred_at: fixed(9) })
+    if (dom === 25) tx.push({ title: 'Rent', category: 'bills', kind: 'expense', amount: 1400, note: null, occurred_at: fixed(12) })
+  }
+  tx.push({ title: 'Freelance — logo', category: 'salary', kind: 'income', amount: 650, note: 'Kedai Kopi Ah Seng', occurred_at: addDays(now, -9).toISOString() })
+  tx.push({ title: 'Wei Ling', category: 'transfer', kind: 'income', amount: 45, note: 'Dinner split', occurred_at: addDays(now, -2).toISOString() })
+
   const net = tx.reduce((s, t) => s + (t.kind === 'income' ? t.amount : -t.amount), 0)
-  // Opening salary so the demo balance lands on the same figure as the mock-up.
   tx.push({
-    title: 'Salary',
-    amount: Math.round((8921.09 - net) * 100) / 100,
+    title: 'Opening balance',
+    category: 'other',
     kind: 'income',
-    category: 'salary',
-    note: 'Monthly salary',
-    occurred_at: at(12, 9, 0),
+    amount: round2(6482.35 - net),
+    note: 'Carried over',
+    occurred_at: addDays(now, -46).toISOString(),
   })
+
+  const nextYear = now.getFullYear() + 1
   return {
-    profile: { id: 'demo', full_name: 'Alex Morgan', currency: 'USD', card_last4: '5512' },
+    profile: { id: 'demo', full_name: 'Aisyah Rahman', currency: 'MYR', monthly_budget: 2200 },
     transactions: tx.map((t) => ({ ...t, id: uid() })),
     contacts: [
-      { id: uid(), name: 'Daisie Park', handle: 'daisie09', tint: 'lilac' },
-      { id: uid(), name: 'Leo Hart', handle: 'leohart', tint: 'mint' },
-      { id: uid(), name: 'Mia Chen', handle: 'mia.c', tint: 'peach' },
-      { id: uid(), name: 'Sam Rivera', handle: 'samr', tint: 'sky' },
-      { id: uid(), name: 'Nora Blake', handle: 'nora', tint: 'pink' },
+      { id: uid(), name: 'Wei Ling', handle: 'weiling', tint: 'lilac' },
+      { id: uid(), name: 'Arjun Kumar', handle: 'arjun.k', tint: 'mint' },
+      { id: uid(), name: 'Farah Zain', handle: 'farahz', tint: 'peach' },
+      { id: uid(), name: 'Daniel Tan', handle: 'danieltan', tint: 'sky' },
+      { id: uid(), name: 'Mei Yee', handle: 'meiyee', tint: 'pink' },
     ],
     goals: [
-      { id: uid(), name: 'Emergency', target: 5000, saved: 4900, icon: 'petals', tint: 'lilac' },
-      { id: uid(), name: 'Home renovation', target: 12000, saved: 9360, icon: 'hourglass', tint: 'pink' },
-      { id: uid(), name: 'Travel', target: 3000, saved: 1860, icon: 'stack', tint: 'sky' },
+      { id: uid(), name: 'Emergency fund', target: 10000, saved: 9800, icon: 'petals', tint: 'lilac', deadline: null },
+      { id: uid(), name: 'Raya balik kampung', target: 1500, saved: 1170, icon: 'hourglass', tint: 'pink', deadline: `${nextYear}-03-01` },
+      { id: uid(), name: 'Bali trip', target: 4000, saved: 1240, icon: 'stack', tint: 'sky', deadline: `${nextYear}-07-01` },
     ],
   }
 }
@@ -68,7 +101,7 @@ function load(): DB {
     const raw = localStorage.getItem(KEY)
     if (raw) return JSON.parse(raw) as DB
   } catch {
-    /* storage unavailable — fall through to fresh seed */
+    /* storage unavailable — fall back to a fresh seed */
   }
   const db = seed()
   save(db)
@@ -92,7 +125,7 @@ export function resetLocalStore() {
 }
 
 export function createLocalStore(): Store {
-  let db = load()
+  const db = load()
   const commit = () => save(db)
   const sorted = () => [...db.transactions].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at))
 
@@ -106,18 +139,8 @@ export function createLocalStore(): Store {
       return db.profile
     },
     async summary() {
-      const m = startOfMonth().toISOString()
-      let balance = 0
-      let monthExpense = 0
-      let monthIncome = 0
-      for (const t of db.transactions) {
-        balance += t.kind === 'income' ? t.amount : -t.amount
-        if (t.occurred_at >= m) {
-          if (t.kind === 'income') monthIncome += t.amount
-          else monthExpense += t.amount
-        }
-      }
-      return { balance: Math.round(balance * 100) / 100, monthExpense, monthIncome }
+      const balance = db.transactions.reduce((s, t) => s + (t.kind === 'income' ? t.amount : -t.amount), 0)
+      return summarize(db.transactions, balance)
     },
     async listTransactions(q = {}) {
       let list = sorted()
@@ -131,6 +154,11 @@ export function createLocalStore(): Store {
       commit()
       return row
     },
+    async updateTransaction(id, patch) {
+      db.transactions = db.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t))
+      commit()
+      return db.transactions.find((t) => t.id === id)!
+    },
     async deleteTransaction(id) {
       db.transactions = db.transactions.filter((t) => t.id !== id)
       commit()
@@ -139,7 +167,7 @@ export function createLocalStore(): Store {
       return db.contacts
     },
     async addContact(c) {
-      if (db.contacts.some((x) => x.handle === c.handle)) throw new Error('That handle is already in your contacts')
+      if (db.contacts.some((x) => x.handle === c.handle)) throw new Error(`@${c.handle} is already in your contacts`)
       const row = { ...c, id: uid() }
       db.contacts.push(row)
       commit()
